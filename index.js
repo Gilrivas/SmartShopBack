@@ -1,46 +1,29 @@
+// index.js
+
 const express = require('express');
-const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const bodyParser = require('body-parser');
+const { sequelize } = require('./database');
+const signup = require('./Signup');
+const login = require('./login');
+
 const app = express();
-
-// Configuración de Passport.js
-passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "/auth/google/callback"
-  },
-  function(accessToken, refreshToken, profile, done) {
-    // Aquí tendrías la lógica para guardar el usuario en la base de datos
-    return done(null, profile);
-  }
-));
-
-// Configura Passport.js para serializar y deserializar el usuario
-passport.serializeUser(function(user, done) {
-  done(null, user);
-});
-
-passport.deserializeUser(function(user, done) {
-  done(null, user);
-});
-
-app.use(passport.initialize());
-
-// Rutas para la autenticación con Google
-app.get('/auth/google',
-  passport.authenticate('google', { scope: ['profile', 'email'] }));
-
-app.get('/auth/google/callback',
-  passport.authenticate('google', { failureRedirect: '/login' }),
-  function(req, res) {
-    // Éxito en la autenticación
-    res.redirect('/');
-  });
-
-// Otro middleware y rutas de tu aplicación...
-
-// Inicia tu servidor
 const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Servidor corriendo en el puerto ${port}`);
-});
+
+app.use(bodyParser.json());
+
+// Define tus rutas aquí
+app.post('/signup', signup);
+app.post('/login', login);
+
+// Autentica la conexión a la base de datos y luego inicia el servidor
+sequelize
+  .authenticate()
+  .then(() => {
+    console.log('Connection has been established successfully.');
+    app.listen(port, () => {
+      console.log(`Servidor corriendo en el puerto ${port}`);
+    });
+  })
+  .catch(error => {
+    console.error('Unable to connect to the database:', error);
+  });
